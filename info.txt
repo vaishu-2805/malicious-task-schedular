@@ -1,0 +1,60 @@
+The TaskScheduler.py code sample shown demonstrates the use of
+schtasks on Windows to schedule malicious tasks. On each
+repetition, the code executes some malicious functionality and then
+schedules itself to run again at some random interval.
+Checking for Scheduled Tasks
+The average Windows machine has a number of different scheduled
+tasks, meaning that a malicious task can easily be lost in the noise.
+However, this is true only if the malicious task doesn't do something
+that draws attention to itself, such as flooding the list of scheduled
+tasks with multiple copies of itself.
+Before scheduling a new malicious task, TaskScheduler checks to see
+if it already exists within the task list. This is accomplished using a
+call to os.system (which allows code to be run at the Windows
+command prompt) with the command schtasks /query /tn
+SecurityScan. This command calls the schtasks program, states that
+ it wants to query the task list, and looks for a task name (/tn) of
+SecurityScan.
+If this task exists within the list, it is deleted with schtasks /delete
+/f /tn SecurityScan. In this command, the /f flag suppresses the
+confirmation warning, enabling the command to complete silently.
+Scheduling a Malicious Task
+After deleting any previous instances of its task, TaskScheduler
+executes its malicious functionality (printing I am doing malicious
+things). When this is complete, it starts scheduling the next iteration
+of the task.
+The code is designed to run at a random interval with a fixed
+maximum value. This is calculated with the command 1+
+(random.random()*(maxInterval-1)), which uses random.random to
+create a value between 0 and 1 and converts this to a range between 1
+and the maximum value.
+With a value set to 1, as it is in the previous code, the task will run
+every minute, but this value can be increased. The random intervals
+can make the malicious code less predictable and detectable when
+compared to something that runs at regular intervals.
+To schedule a task using schtasks, we need to be able to specify the
+time it should be run. To do so, we can use the datetime.now() and
+timedelta functions from Python's datetime library. The timedelta
+function allows us to convert our interval into minutes and add it to
+the current time calculated using datetime.now(). The result is stored
+in dt.
+From this, we can calculate the exact time, t, and date, d, using string
+operations. The command "%s:%s" %
+(str(dt.hour).zfill(2),str(dt.minute).zfill(2)) creates a string
+containing two strings separated by a colon. These values are
+calculated by extracting the hour and minute values from dt and
+formatting them as two-digit numbers (i.e., 08 instead of 8). The
+result will be a time like 08:45, and the date is calculated via a similar
+process (formatted as MM/DD/YYYY).
+
+After calculating the date and time of the next iteration, we can
+schedule the task with a call to schtasks. This call uses the following
+arguments:
+/create: Creates a new task
+/tn: Specifies the task name as SecurityScan
+/tr: Indicates the task to be run at that time (our malicious file)
+/sc: Defines how often the task should be repeated (once)
+/st: Sets the time at which the task should be run
+/sd: Sets the date at which the task should be run
+After this command is run, the task is scheduled, and the malicious
+code will run again at the indicated time.
